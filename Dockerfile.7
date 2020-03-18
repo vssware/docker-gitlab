@@ -1,0 +1,39 @@
+FROM vssware/centos:7
+
+LABEL author="Jimmy Shine <Jimmy.Shine@Gmail.com>"
+
+ENV datadir /var/opt/gitlab
+ENV PORT 80
+
+COPY data/repo.sh /tmp/repo.sh
+COPY data/docker-entrypoint-gitlab.sh /usr/local/bin/docker-entrypoint-gitlab.sh
+COPY data/update-permissions.sh /usr/local/bin/update-permissions.sh
+COPY data/gitlab-conf.sh /usr/local/bin/gitlab-conf.sh
+
+RUN chmod +x /tmp/repo.sh \
+    && /tmp/repo.sh \
+    && yum -y update \
+    && yum -y install gitlab-ce \
+    && chmod +x /usr/local/bin/*.sh \
+    && rm -rf /tmp/* \
+    && echo 'kernel.sysrq = 16'  >>  /etc/sysctl.conf \
+    && echo 'kernel.core_uses_pid = 1'  >>  /etc/sysctl.conf \
+    && echo 'net.ipv4.conf.default.rp_filter = 1'  >>  /etc/sysctl.conf \
+    && echo 'net.ipv4.conf.all.rp_filter = 1'  >>  /etc/sysctl.conf \
+    && echo 'net.ipv4.conf.default.accept_source_route = 0'  >>  /etc/sysctl.conf \
+    && echo 'net.ipv4.conf.all.accept_source_route = 0'  >>  /etc/sysctl.conf \
+    && echo 'net.ipv4.conf.default.promote_secondaries = 1'  >>  /etc/sysctl.conf \
+    && echo 'net.ipv4.conf.all.promote_secondaries = 1'  >>  /etc/sysctl.conf \
+    && echo 'fs.protected_hardlinks = 1'  >>  /etc/sysctl.conf \
+    && echo 'fs.protected_symlinks = 1'  >>  /etc/sysctl.conf \
+    && yum clean all \
+    && rm -rf /var/cache/yum
+
+VOLUME ["$datadir"]
+VOLUME ["/var/log/gitlab"]
+
+USER root
+WORKDIR $datadir
+ENTRYPOINT ["sh","-c"]
+CMD ["/usr/local/bin/docker-entrypoint-gitlab.sh"]
+EXPOSE $PORT
